@@ -20,7 +20,11 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#if __ANDROID__
+#include "glob.h"
+#else
 #include <glob.h>
+#endif
 #include <fnmatch.h>
 
 #include <fluent-bit/flb_compat.h>

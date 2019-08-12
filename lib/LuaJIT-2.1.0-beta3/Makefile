@@ -110,7 +110,7 @@ INSTALL_DEP= src/luajit
 
 default all $(INSTALL_DEP):
 	@echo "==== Building LuaJIT $(VERSION) ===="
-	$(MAKE) -C src
+	$(MAKE) HOST_CC="gcc -m32" CROSS="/opt/toolchains/arm-android-gcc/bin/arm-linux-androideabi-" TARGET_FLAGS="--sysroot /opt/toolchains/arm-android-gcc/sysroot -ldl" TARGET_SYS=Other -C src
 	@echo "==== Successfully built LuaJIT $(VERSION) ===="
 
 install: $(INSTALL_DEP)

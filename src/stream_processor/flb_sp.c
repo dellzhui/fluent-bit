@@ -260,7 +260,11 @@ static int string_to_number(const char *str, int len, int64_t *i, double *d)
     else if (dots == 1) {
         /* Floating point number */
         errno = 0;
+#if __ANDROID__
+        d_out = strtod(str, &end);
+#else
         d_out = strtold(str, &end);
+#endif
 
         /* Check for various possible errors */
         if ((errno == ERANGE || (errno != 0 && d_out == 0))) {

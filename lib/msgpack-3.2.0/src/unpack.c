@@ -16,6 +16,15 @@
 #include _msgpack_atomic_counter_header
 #endif
 
+#if __ANDROID__
+#ifndef SIZE_MAX // [
+#  ifdef _WIN64 // [
+#     define SIZE_MAX  0xffffffffffffffff
+#  else // _WIN64 ][
+#     define SIZE_MAX  0xffffffff
+#  endif // _WIN64 ]
+#endif // SIZE_MAX ]
+#endif
 
 typedef struct {
     msgpack_zone** z;

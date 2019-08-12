@@ -29,7 +29,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <signal.h>
+#if __ANDROID__
+#include "glob.h"
+#else
 #include <glob.h>
+#endif
 #include <libgen.h>
 #include <unistd.h>
 #include <stdlib.h>

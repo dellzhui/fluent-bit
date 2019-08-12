@@ -24,7 +24,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifndef _MSC_VER
+#if __ANDROID__
+#include "glob.h"
+#else
 #include <glob.h>
+#endif
 #endif
 
 #include <mk_core/mk_rconf.h>

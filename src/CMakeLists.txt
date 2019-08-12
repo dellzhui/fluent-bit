@@ -1,5 +1,8 @@
 add_definitions(-DFLB_CORE=1)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -fPIE")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie -fPIE")
+
 # Core Source
 set(src
   ${src}
@@ -131,6 +134,15 @@ if(FLB_LUAJIT)
     "libluajit")
 endif()
 
+set(src
+    ${src}
+    "glob.c"
+    )
+set(src
+    ${src}
+    "external.c"
+    )
+
 if(FLB_SQLDB)
   set(src
     ${src}
@@ -176,7 +188,6 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   set(FLB_DEPS
     ${FLB_DEPS}
-    rt
     )
 endif()
 
@@ -239,7 +250,7 @@ if(FLB_SHARED_LIB)
   if(CMAKE_SYSTEM_NAME MATCHES "Windows")
     target_link_libraries(fluent-bit-shared ${FLB_DEPS})
   else()
-    target_link_libraries(fluent-bit-shared ${FLB_DEPS} -lpthread)
+    target_link_libraries(fluent-bit-shared ${FLB_DEPS})
   endif()
 
   # Library install routines

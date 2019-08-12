@@ -159,16 +159,25 @@ static void cb_plot_flush(const void *data, size_t bytes,
         }
 
         if (val->type == MSGPACK_OBJECT_POSITIVE_INTEGER) {
+#if __ANDROID__
+#else
             dprintf(fd, "%f %" PRIu64 "\n",
                     flb_time_to_double(&atime), val->via.u64);
+#endif
         }
         else if (val->type == MSGPACK_OBJECT_NEGATIVE_INTEGER) {
+#if __ANDROID__
+#else
             dprintf(fd, "%f %" PRId64 "\n",
                     flb_time_to_double(&atime), val->via.i64);
+#endif
         }
         else if (val->type == MSGPACK_OBJECT_FLOAT) {
+#if __ANDROID__
+#else
             dprintf(fd, "%f %lf\n",
                     flb_time_to_double(&atime), val->via.f64);
+#endif
         }
         else {
             flb_error("[out_plot] value must be integer, negative integer "
