@@ -159,7 +159,7 @@ static void out_lib_flush(const void *data, size_t bytes,
             }
 
             len = strlen(buf);
-            out_size = len + 32;
+            out_size = len + 128;
             out_buf = flb_malloc(out_size);
             if (!out_buf) {
                 flb_errno();
@@ -167,9 +167,11 @@ static void out_lib_flush(const void *data, size_t bytes,
                 FLB_OUTPUT_RETURN(FLB_ERROR);
             }
 
-            len = snprintf(out_buf, out_size, "[%f,%s]",
-                           flb_time_to_double(&tm),
-                           buf);
+            if(*buf == '{') {
+                len = snprintf(out_buf, out_size, "{\"date\": %f, \"value\": %s}", flb_time_to_double(&tm), buf);
+            } else {
+                len = snprintf(out_buf, out_size, "[%f,%s]", flb_time_to_double(&tm), buf);
+            }
             flb_free(buf);
             data_for_user = out_buf;
             data_size = len;
