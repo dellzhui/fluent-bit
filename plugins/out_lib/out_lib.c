@@ -168,7 +168,8 @@ static void out_lib_flush(const void *data, size_t bytes,
             }
 
             if(*buf == '{') {
-                len = snprintf(out_buf, out_size, "{\"date\": %f, \"value\": %s}", flb_time_to_double(&tm), buf);
+                int priority = *(buf + strlen("{\"priority\":")) - '0';
+                len = snprintf(out_buf, out_size, "{\"priority\":%d,\"date\":%f,\"value\":%s}", priority, flb_time_to_double(&tm), buf);
             } else {
                 len = snprintf(out_buf, out_size, "[%f,%s]", flb_time_to_double(&tm), buf);
             }
