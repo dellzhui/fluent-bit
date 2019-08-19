@@ -1,7 +1,9 @@
 add_definitions(-DFLB_CORE=1)
 
+if (CMAKE_C_COMPILER MATCHES "arm-linux-androideabi-gcc")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pie -fPIE")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie -fPIE")
+endif()
 
 # Core Source
 set(src
@@ -134,14 +136,13 @@ if(FLB_LUAJIT)
     "libluajit")
 endif()
 
+if (CMAKE_C_COMPILER MATCHES "arm-linux-androideabi-gcc")
 set(src
     ${src}
     "glob.c"
-    )
-set(src
-    ${src}
     "external.c"
     )
+endif()
 
 if(FLB_SQLDB)
   set(src
@@ -186,9 +187,16 @@ endif()
 
 # Link timer library
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+if (CMAKE_C_COMPILER MATCHES "arm-linux-androideabi-gcc")
   set(FLB_DEPS
     ${FLB_DEPS}
     )
+else()
+  set(FLB_DEPS
+    ${FLB_DEPS}
+    rt
+    )
+endif()
 endif()
 
 # Stream Processor
@@ -249,8 +257,10 @@ if(FLB_SHARED_LIB)
   # Windows doesn't provide pthread (see winpthreads.c in mk_core).
   if(CMAKE_SYSTEM_NAME MATCHES "Windows")
     target_link_libraries(fluent-bit-shared ${FLB_DEPS})
-  else()
+  elseif(CMAKE_C_COMPILER MATCHES "arm-linux-androideabi-gcc")
     target_link_libraries(fluent-bit-shared ${FLB_DEPS})
+  else()
+    target_link_libraries(fluent-bit-shared ${FLB_DEPS} -lpthread)
   endif()
 
   # Library install routines

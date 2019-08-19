@@ -1,3 +1,4 @@
+#if __ANDROID__
 #include <stdio.h>
 #include <time.h>
 
@@ -56,3 +57,4 @@ int getline(char *buf, int size, FILE *file) {
 		return -1; // longer than the size to read
 	}
 }
+#endif

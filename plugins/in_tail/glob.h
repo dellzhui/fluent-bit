@@ -36,6 +36,7 @@
 #ifndef _GLOB_H_
 #define	_GLOB_H_
 
+#if __ANDROID__
 #include <sys/cdefs.h>
 #include <sys/_types.h>
 
@@ -102,4 +103,5 @@ int	glob(const char *, int, int (*)(const char *, int), glob_t *);
 void	globfree(glob_t *);
 __END_DECLS
 
+#endif
 #endif /* !_GLOB_H_ */

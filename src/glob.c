@@ -33,6 +33,7 @@
  * SUCH DAMAGE.
  */
 
+#if __ANDROID__
 #if defined(LIBC_SCCS) && !defined(lint)
 static char sccsid[] = "@(#)glob.c	8.3 (Berkeley) 10/13/93";
 #endif /* LIBC_SCCS and not lint */
@@ -903,4 +904,6 @@ qprintf(const char *str, Char *s)
 		(void)printf("%c", ismeta(*p) ? '_' : ' ');
 	(void)printf("\n");
 }
+#endif
+
 #endif
