@@ -923,35 +923,261 @@ int main(int argc, char **argv)
 #include <fluent-bit.h>
 #include <msgpack.h>
 
-int my_stdout_json(void* data, size_t size)
-{
-    printf("[%s]",__FUNCTION__);
-    printf("[%s]",(char*)data);
-    printf("\n");
+static flb_ctx_t *gCtx = NULL;
 
-    flb_lib_free(data);
+//add by lym
+#define CONFIG_LINE_BUFFERSIZE 4096
+#define CONFIG_KEY_LENGTH 32
+#define CONFIG_PARSER_MAX_NUM 100
+struct config_result{
+    char *Parsers_File;
+    char *grep_regex;
+    int  parser_num;
+    char *parser[CONFIG_PARSER_MAX_NUM];
+};
+static struct config_result configResult;
+
+static int config_filter_value_get(char *config_file_name)
+{
+    FILE *fp=NULL;
+    char buf[CONFIG_LINE_BUFFERSIZE];
+    char *find = NULL;
+    int index = 0;
+    int wait_flag=0;
+    char wait_key[CONFIG_KEY_LENGTH];
+    int value_len;
+
+    if(config_file_name==NULL)
+    {
+        printf("%s, param error\n", __FUNCTION__);
+        return -1;
+    }
+
+    fp=fopen(config_file_name,"rb");
+    if(fp==NULL)
+    {
+        printf("%s, error: cant find usbconfig file=%s\n", __FUNCTION__, config_file_name);
+        return -1;
+    }
+
+    memset(wait_key, 0, CONFIG_KEY_LENGTH);
+    memset(&configResult, 0, sizeof(struct config_result));
+
+    while(!feof(fp))
+    {
+        memset(buf, 0, CONFIG_LINE_BUFFERSIZE);
+        fgets(buf, CONFIG_LINE_BUFFERSIZE, fp);
+        if(buf[0] == '#' || buf[0] == '\0' || buf[0] == '\n' || (buf[0] == '\r' && buf[1] == '\n'))
+            continue;
+
+        printf("%s, buf=%s\n", __FUNCTION__, buf);
+        index = strlen(buf);
+        if(buf[index-1] == '\n')
+            buf[index-1] = '\0';
+        if((buf[index -2]) == '\r')
+            buf[index -2] = '\0';
+
+        if(buf[0]=='['){
+            if(buf[1]=='\0'||buf[1]==']'){
+                continue;
+            }
+            if(strncmp(buf+1, "SERVICE",7)==0)
+            {
+                //we need get Parsers_File
+                strncpy(wait_key,"Parsers_File",CONFIG_KEY_LENGTH);
+                wait_flag=1;
+            }
+            else if(strncmp(buf+1, "FILTER", 6)==0)
+            {
+                //we need get name=grep | parser
+                strncpy(wait_key,"Name",CONFIG_KEY_LENGTH);
+                wait_flag=1;
+            }
+            else
+            {
+                wait_flag=0;
+            }
+            printf("%s, wait_flag=%d, wait_key=%s\n", __FUNCTION__, wait_flag, wait_key);
+        }
+        else
+        {
+            if(wait_flag)
+            {
+                find=strstr(buf, wait_key);
+                if(find==NULL)
+                {
+                    //printf("%s not find\n", wait_key);
+                    continue;
+                }
+                if(((find-buf)>4)||(find[0]=='#'))//not key, maybe only in value
+                {
+                    printf("%s, find but position error\n", wait_key);
+                    continue;
+                }
+                if(wait_flag==1)
+                {
+                    if(strncmp(find,"Parsers_File",strlen("Parsers_File"))==0)
+                    {
+                        printf("%s, find=%s\n", __FUNCTION__, find);
+                        char *ptmp=find+strlen("Parsers_File");
+                        printf("%s, ptmp=%s\n", __FUNCTION__, ptmp);
+                        while(1)
+                        {
+                            //jump blankspace
+                            if(ptmp[0]==' ')
+                                ptmp++;
+                            else
+                                break;
+                        }
+                        printf("%s, ptmp=%s\n", __FUNCTION__, ptmp);
+                        value_len=strlen(ptmp);
+                        if(value_len>0)
+                        {
+                            //store value
+                            printf("len=%d, Parsers_File=%s\n", value_len, ptmp);
+                            configResult.Parsers_File=(char*)calloc(value_len+1, 1);
+                            if(configResult.Parsers_File==NULL)
+                            {
+                                printf("%s, %d, calloc %d error\n", __FUNCTION__, __LINE__,value_len+1);
+                                continue;
+                            }
+                            strncpy(configResult.Parsers_File, ptmp, value_len);
+                            wait_flag=0;
+                        }
+                    }
+                    else if(strncmp(find,"Name",strlen("Name"))==0)
+                    {
+                        printf("%s, find=%s\n", __FUNCTION__, find);
+                        if(strstr(find, "grep"))
+                        {
+                            //we need get Regex
+                            strncpy(wait_key,"Regex",CONFIG_KEY_LENGTH);
+                            wait_flag=2;
+                        }
+                        else if(strstr(find, "parser"))
+                        {
+                            //we need get Parser, not only 1
+                            strncpy(wait_key,"Parser",CONFIG_KEY_LENGTH);
+                            wait_flag=3;
+                        }
+                        printf("%s, 2, wait_flag=%d, wait_key=%s\n", __FUNCTION__, wait_flag, wait_key);
+                    }
+                }
+                else if(wait_flag==2)
+                {//Regex log xxxxxx
+                    char *find2 = NULL;
+                    find2=strstr(buf, "log");
+                    if(find2==NULL)
+                        continue;
+
+                    /*char *ptmp=find2+strlen("log");
+                    while(1)
+                    {
+                        //jump blankspace
+                        if(ptmp[0]==' ')
+                            ptmp++;
+                        else
+                            break;
+                    }*/
+                    value_len=strlen(find2);
+                    if(value_len>0)
+                    {
+                        //store value
+                        printf("len=%d, log=%s\n", value_len, find2);
+                        configResult.grep_regex=(char*)calloc(value_len+1, 1);
+                        if(configResult.grep_regex==NULL)
+                        {
+                            printf("%s, %d, calloc %d error\n", __FUNCTION__, __LINE__,value_len+1);
+                            continue;
+                        }
+                        strncpy(configResult.grep_regex, find2, value_len);
+                        wait_flag=0;
+                    }
+
+                }
+                else if(wait_flag==3)
+                {//Parser parser_name
+                    char *ptmp=find+strlen("Parser");
+                    while(1)
+                    {
+                        //jump blankspace
+                        if(ptmp[0]==' ')
+                            ptmp++;
+                        else
+                            break;
+                    }
+                    value_len=strlen(ptmp);
+                    if(value_len>0)
+                    {
+                        //store value
+                        printf("len=%d, parser=%s\n", value_len, ptmp);
+                        if(configResult.parser_num >= CONFIG_PARSER_MAX_NUM)
+                        {
+                            printf("%s, error: too many parser num=%d\n", __FUNCTION__, configResult.parser_num);
+                            continue;
+                        }
+
+                        configResult.parser[configResult.parser_num]=(char*)calloc(value_len+1, 1);
+                        if(configResult.parser[configResult.parser_num]==NULL)
+                        {
+                            printf("%s, %d, calloc %d error\n", __FUNCTION__, __LINE__,value_len+1);
+                            continue;
+                        }
+                        strncpy(configResult.parser[configResult.parser_num], ptmp, value_len);
+                        configResult.parser_num++;
+                        printf("%s, parser_num=%d, parser=%s\n", __FUNCTION__, configResult.parser_num, ptmp);
+                    }
+
+                }
+            }
+            else
+            {
+                //printf("%s, wait_flag=%d\n", __FUNCTION__, wait_flag);
+            }
+        }
+
+    }
+    fclose(fp);
+
+    return 0;
+}
+static int config_filter_value_free(void)
+{
+    int i=0;
+
+    if(configResult.Parsers_File != NULL)
+    {
+        free(configResult.Parsers_File);
+        configResult.Parsers_File=NULL;
+    }
+    if(configResult.grep_regex != NULL)
+    {
+        free(configResult.grep_regex);
+        configResult.grep_regex=NULL;
+    }
+    for(i=0;i<configResult.parser_num;i++)
+    {
+        if(configResult.parser[i] != NULL)
+        {
+            free(configResult.parser[i]);
+            configResult.parser[i]=NULL;
+        }
+    }
+    configResult.parser_num=0;
+
     return 0;
 }
 
-int my_stdout_json1(void *record, size_t size, void *data)
-{
-    printf("[%s]",__FUNCTION__);
-    printf("[%s]\n",(char*)record);
+//end by lym
 
+
+int my_lib_json(void *record, size_t size, void *data)
+{
+    printf("[%s]:%s\n",__FUNCTION__, (char *)record);
     flb_lib_free(record);
     return 0;
 }
 
-
-int my_stdout_msgpack(void* data, size_t size)
-{
-    printf("[%s]",__FUNCTION__);
-    msgpack_object_print(stdout, *(msgpack_object*)data);
-    printf("\n");
-
-    flb_lib_free(data);
-    return 0;
-}
 
 int my_stdout_msgpack1(void *record, size_t size, void *data)
 {
@@ -966,67 +1192,95 @@ int my_stdout_msgpack1(void *record, size_t size, void *data)
 
 int main()
 {
-    flb_ctx_t *ctx;
+    const char *config_file_path = "/data/stb.conf";
+    const char *log_file_path = "/data/logtest.log";
     int in_ffd;
+    int filter_ffd;
     int out_ffd;
 
-    /* Initialize library */
-    ctx = flb_create();
-    if (!ctx) {
-        exit(EXIT_FAILURE);
+
+    if(access(log_file_path, F_OK) != 0) {
+        FILE *f = fopen(log_file_path,  "w");
+        if(f == NULL) {
+            printf("failed to create log file\n");
+            return -1;
+        }
+        fclose(f);
     }
 
-    flb_service_set(ctx,
-        "Flush", "1",
-        "Daemon", "off", 
-        "Parsers_File", "/home/work/opensource/Git/fluent-bit/build/bin/parse1.conf", 
-        NULL);
+    config_filter_value_get(config_file_path);
 
-    in_ffd = flb_input(ctx, "tail", NULL);
-    flb_input_set(ctx, in_ffd, "tag", "test", "Path", "/home/work/opensource/Git/fluent-bit/build/examples/out_lib/apache.log", "Parser", "apache", NULL);
+    /* Initialize library */
+    gCtx = (flb_ctx_t *) flb_create();
+    if (!gCtx) {
+        return -1;
+    }
+
+
+    if(configResult.Parsers_File != NULL) {
+        printf("%s, set services=%s\n", __FUNCTION__, configResult.Parsers_File);
+        //service set
+        flb_service_set(gCtx,
+                        "Flush", "1",
+                        "Daemon", "off",
+                        "Parsers_File", configResult.Parsers_File,
+                        NULL);
+    }
+
+    in_ffd = flb_input(gCtx, "tail", NULL);
+    flb_input_set(gCtx, in_ffd, "tag", "test", "Path", log_file_path, NULL);
+
+    /* filter grep */
+    if(configResult.grep_regex != NULL)
+    {
+        printf("%s, set grep=%s\n", __FUNCTION__, configResult.grep_regex);
+        filter_ffd = flb_filter(gCtx, "grep", NULL);
+        flb_filter_set(gCtx, filter_ffd,"match", "*",  "Regex", configResult.grep_regex, NULL);
+    }
+
+    /* filter parser */
+    printf("lym, filter start\n");
+    filter_ffd = flb_filter(gCtx, "parser", NULL);
+    flb_filter_set(gCtx, filter_ffd,
+                   "Match", "*",
+                   "Match_Rule", "*",
+                   "Key_Name", "log",
+                   "Reserve_Data", "On",
+                   NULL);
+    if(configResult.parser_num > 0)
+    {
+        int index=0;
+        for(index=0;index<configResult.parser_num;index++)
+        {
+            if(configResult.parser[index] != NULL)
+            {
+                flb_filter_set(gCtx, filter_ffd, "Parser", configResult.parser[index],NULL);
+                printf("%s, set Parser=%s\n", __FUNCTION__, configResult.parser[index]);
+            }
+        }
+    }
+    config_filter_value_free();
 
     /* Register my callback function */
-
     struct flb_lib_out_cb * cb = (struct flb_lib_out_cb *)calloc(1, sizeof(struct flb_lib_out_cb));
     cb->data = NULL;
 
     /* JSON format */
-    #if 1
-    cb->cb = my_stdout_json1;
-    out_ffd = flb_output(ctx, "lib", cb);
-    flb_output_set(ctx, out_ffd, "match", "test", "format", "json", NULL);
-    #else
-    cb->cb = my_stdout_msgpack1;
-    /* Msgpack format */
-    out_ffd = flb_output(ctx, "lib", cb);
-    flb_output_set(ctx, out_ffd, "match", "test", NULL);
-    #endif
-    
+    cb->cb = my_lib_json;
+    out_ffd = flb_output(gCtx, "lib", cb);
+    flb_output_set(gCtx, out_ffd, "match", "test", "format", "json", NULL);
 
     /* Start the background worker */
-    flb_start(ctx);
-
-    /* Push some data */
-    #if 0
-    int i;
-    int n;
-    char tmp[256];
-    for (i = 0; i < 100; i++) {
-        n = snprintf(tmp, sizeof(tmp) - 1,
-                     "[%f, {\"key\": \"val %i\"}]",
-                     flb_time_now(), i);
-        flb_lib_push(ctx, in_ffd, tmp, n);
-    }
-    #endif
+    flb_start(gCtx);
 
     while(1) {
         sleep(100);
     }
     
-    flb_stop(ctx);
+    flb_stop(gCtx);
 
     /* Release Resources */
-    flb_destroy(ctx);
+    flb_destroy(gCtx);
 
     return 0;
 }

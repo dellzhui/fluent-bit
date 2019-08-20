@@ -42,6 +42,24 @@ struct regex_cb_ctx {
     msgpack_packer *pck;
 };
 
+static int add_item(msgpack_packer *pck, const char *name, int name_len, const char *value, int value_len, struct flb_parser *parser)
+{
+    if(pck == NULL || name == NULL || *name == 0 || name_len <= 0 || value == NULL || *value == 0 || value_len <= 0 || parser == NULL) {
+        
+        return -1;
+    }
+
+    if (parser->types_len != 0) {
+        flb_parser_typecast(name, name_len, value, value_len, pck, parser->types, parser->types_len);
+    }
+    else {
+        msgpack_pack_str(pck, name_len);
+        msgpack_pack_str_body(pck, name, name_len);
+        msgpack_pack_str(pck, value_len);
+        msgpack_pack_str_body(pck, value, value_len);
+    }
+    return 0;
+}
 static void cb_results(const char *name, const char *value,
                        size_t vlen, void *data)
 {
@@ -131,9 +149,12 @@ int flb_parser_regex_do(struct flb_parser *parser,
     msgpack_packer tmp_pck;
 
     n = flb_regex_do(parser->regex, buf, length, &result);
+
     if (n <= 0) {
         return -1;
     }
+
+    n += 2;
 
     /* Prepare new outgoing buffer */
     msgpack_sbuffer_init(&tmp_sbuf);
@@ -150,6 +171,15 @@ int flb_parser_regex_do(struct flb_parser *parser,
     pcb.time_lookup = 0;
     pcb.time_frac = 0;
     pcb.time_now = time(NULL);
+
+    {
+        const char *idms_log_event_name_key = "IdmsLogEventName";
+        const char *idms_log_event_priority_key = "IdmsLogEventPriority";
+        char priority_str[32] = {0};
+        snprintf(priority_str, sizeof(priority_str) - 1, "%d", parser->priority);
+        add_item(pcb.pck, idms_log_event_priority_key, strlen(idms_log_event_priority_key), (const char *)priority_str, strlen(priority_str), parser);
+        add_item(pcb.pck, idms_log_event_name_key, strlen(idms_log_event_name_key), parser->name, strlen(parser->name), parser);
+    }
 
     /* Iterate results and compose new buffer */
     last_byte = flb_regex_parse(parser->regex, &result, cb_results, &pcb);

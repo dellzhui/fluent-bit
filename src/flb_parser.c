@@ -103,7 +103,7 @@ int flb_parser_logfmt_do(struct flb_parser *parser,
                          void **out_buf, size_t *out_size,
                          struct flb_time *out_time);
 
-struct flb_parser *flb_parser_create(const char *name, const char *format,
+struct flb_parser *flb_parser_create(const char *name, const char *format, int priority,
                                      const char *p_regex,
                                      const char *time_fmt, const char *time_key,
                                      const char *time_offset,
@@ -286,6 +286,7 @@ struct flb_parser *flb_parser_create(const char *name, const char *format,
     p->time_keep = time_keep;
     p->types = types;
     p->types_len = types_len;
+    p->priority = priority;
 
     mk_list_add(&p->_head, &config->parsers);
 
@@ -398,6 +399,7 @@ int flb_parser_conf_file(const char *file, struct flb_config *config)
     char tmp[PATH_MAX + 1];
     const char *cfg = NULL;
     char *name;
+    char *priority;
     char *format;
     char *regex;
     char *time_fmt;
@@ -463,6 +465,14 @@ int flb_parser_conf_file(const char *file, struct flb_config *config)
             goto fconf_error;
         }
 
+        /* Priority */
+        priority = (char *)mk_rconf_section_get_key(section, "Priority", MK_RCONF_STR);
+        if (priority == NULL || strlen(priority) != 1 || priority[0] - '0' < 0 || priority[0] - '0' > 10) {
+            priority = "0";
+            //flb_error("[parser] no parser 'Priority' found in file '%s'", cfg);
+            //goto fconf_error;
+        }
+
         /* Format */
         format = mk_rconf_section_get_key(section, "Format", MK_RCONF_STR);
         if (!format) {
@@ -514,7 +524,7 @@ int flb_parser_conf_file(const char *file, struct flb_config *config)
         decoders = flb_parser_decoder_list_create(section);
 
         /* Create the parser context */
-        if (!flb_parser_create(name, format, regex,
+        if (!flb_parser_create(name, format, priority[0]-'0', regex,
                                time_fmt, time_key, time_offset, time_keep,
                                types, types_len, decoders, config)) {
             goto fconf_error;
