@@ -168,7 +168,7 @@ static void out_lib_flush(const void *data, size_t bytes,
             }
 
             if(*buf == '{') {
-                len = snprintf(out_buf, out_size, "{\"IdmsLogEventDate\":%f,%s", flb_time_to_double(&tm), buf + 1);
+                len = snprintf(out_buf, out_size, "{\"LogDate\":%f,%s", flb_time_to_double(&tm), buf + 1);
             } else {
                 len = snprintf(out_buf, out_size, "[%f,%s]", flb_time_to_double(&tm), buf);
             }

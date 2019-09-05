@@ -109,7 +109,7 @@ __FBSDID("$FreeBSD$");
 #define	SLASH		'/'
 #define	COMMA		','
 
-#ifndef DEBUG
+#if 0
 
 #define	M_QUOTE		0x8000000000ULL
 #define	M_PROTECT	0x4000000000ULL
@@ -870,6 +870,7 @@ g_strchr(const Char *str, wchar_t ch)
 static int
 g_Ctoc(const Char *str, char *buf, size_t len)
 {
+#if 0
 	mbstate_t mbs;
 	size_t clen;
 
@@ -885,6 +886,10 @@ g_Ctoc(const Char *str, char *buf, size_t len)
 		len -= clen;
 	}
 	return (1);
+#else
+    snprintf(buf, len, str);
+    return 0;
+#endif
 }
 
 #ifdef DEBUG

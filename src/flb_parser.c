@@ -104,7 +104,7 @@ int flb_parser_logfmt_do(struct flb_parser *parser,
                          struct flb_time *out_time);
 
 struct flb_parser *flb_parser_create(const char *name, const char *format, int priority,
-                                     const char *p_regex,
+                                     const char *LogTag, const char *p_regex,
                                      const char *time_fmt, const char *time_key,
                                      const char *time_offset,
                                      int time_keep,
@@ -287,6 +287,7 @@ struct flb_parser *flb_parser_create(const char *name, const char *format, int p
     p->types = types;
     p->types_len = types_len;
     p->priority = priority;
+    p->LogTag = (char *)LogTag;
 
     mk_list_add(&p->_head, &config->parsers);
 
@@ -400,6 +401,7 @@ int flb_parser_conf_file(const char *file, struct flb_config *config)
     const char *cfg = NULL;
     char *name;
     char *priority;
+    char *LogTag;
     char *format;
     char *regex;
     char *time_fmt;
@@ -473,6 +475,13 @@ int flb_parser_conf_file(const char *file, struct flb_config *config)
             //goto fconf_error;
         }
 
+        /* LogTag */
+        LogTag = (char *)mk_rconf_section_get_key(section, "LogTag", MK_RCONF_STR);
+        /*if (LogTag == NULL) {
+            flb_error("[parser] no parser 'LogTag' found in file '%s'", cfg);
+            goto fconf_error;
+        }*/
+
         /* Format */
         format = mk_rconf_section_get_key(section, "Format", MK_RCONF_STR);
         if (!format) {
@@ -524,7 +533,7 @@ int flb_parser_conf_file(const char *file, struct flb_config *config)
         decoders = flb_parser_decoder_list_create(section);
 
         /* Create the parser context */
-        if (!flb_parser_create(name, format, priority[0]-'0', regex,
+        if (!flb_parser_create(name, format, priority[0]-'0', LogTag, regex,
                                time_fmt, time_key, time_offset, time_keep,
                                types, types_len, decoders, config)) {
             goto fconf_error;

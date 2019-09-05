@@ -62,7 +62,7 @@ void flb_test_filter_parser_extract_fields()
                   NULL);
 
     /* Parser */
-    parser = flb_parser_create("dummy_test", "regex", 0, "^(?<INT>[^ ]+) (?<FLOAT>[^ ]+) (?<BOOL>[^ ]+) (?<STRING>.+)$",
+    parser = flb_parser_create("dummy_test", "regex", 0, NULL, "^(?<INT>[^ ]+) (?<FLOAT>[^ ]+) (?<BOOL>[^ ]+) (?<STRING>.+)$",
                                NULL, NULL, NULL, MK_FALSE, NULL, 0,
                                NULL, ctx->config);
     TEST_CHECK(parser != NULL);
@@ -147,7 +147,7 @@ void flb_test_filter_parser_reserve_data_off()
                   NULL);
 
     /* Parser */
-    parser = flb_parser_create("dummy_test", "regex", 0, "^(?<INT>[^ ]+) (?<FLOAT>[^ ]+) (?<BOOL>[^ ]+) (?<STRING>.+)$",
+    parser = flb_parser_create("dummy_test", "regex", 0, NULL, "^(?<INT>[^ ]+) (?<FLOAT>[^ ]+) (?<BOOL>[^ ]+) (?<STRING>.+)$",
                                NULL, NULL, NULL, MK_FALSE, NULL, 0,
                                NULL, ctx->config);
     TEST_CHECK(parser != NULL);
@@ -222,7 +222,7 @@ void flb_test_filter_parser_handle_time_key()
                   NULL);
 
     /* Parser */
-    parser = flb_parser_create("timestamp", "regex", 0, "^(?<time>.*)$", "%Y-%m-%dT%H:%M:%S.%L",
+    parser = flb_parser_create("timestamp", "regex", 0, NULL, "^(?<time>.*)$", "%Y-%m-%dT%H:%M:%S.%L",
                                "time",
                                NULL, MK_FALSE,
                                NULL, 0, NULL, ctx->config);
@@ -298,7 +298,7 @@ void flb_test_filter_parser_handle_time_key_with_fractional_timestamp()
                   NULL);
 
     /* Parser */
-    parser = flb_parser_create("timestamp", 0, "regex", "^(?<time>.*)$", "%s.%L",
+    parser = flb_parser_create("timestamp", 0, NULL, "regex", "^(?<time>.*)$", "%s.%L",
                                "time",
                                NULL, MK_FALSE,
                                NULL, 0, NULL, ctx->config);
@@ -379,7 +379,7 @@ void flb_test_filter_parser_ignore_malformed_time()
 
     /* Parser */
     parser = flb_parser_create("timestamp", "regex", 0,
-                               "^(?<time>.*)$", "%Y-%m-%dT%H:%M:%S.%L", "time",
+                               NULL, "^(?<time>.*)$", "%Y-%m-%dT%H:%M:%S.%L", "time",
                                NULL, FLB_FALSE,
                                NULL, 0, NULL, ctx->config);
     TEST_CHECK(parser != NULL);
@@ -455,7 +455,7 @@ void flb_test_filter_parser_preserve_original_field()
                   NULL);
 
     /* Parser */
-    parser = flb_parser_create("dummy_test", "regex", 0, "^(?<INT>[^ ]+) (?<FLOAT>[^ ]+) (?<BOOL>[^ ]+) (?<STRING>.+)$",
+    parser = flb_parser_create("dummy_test", "regex", 0, NULL, "^(?<INT>[^ ]+) (?<FLOAT>[^ ]+) (?<BOOL>[^ ]+) (?<STRING>.+)$",
                                NULL, NULL, NULL, MK_FALSE, NULL, 0,
                                NULL, ctx->config);
     TEST_CHECK(parser != NULL);

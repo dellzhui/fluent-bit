@@ -154,7 +154,7 @@ int flb_parser_regex_do(struct flb_parser *parser,
         return -1;
     }
 
-    n += 2;
+    n += 3;
 
     /* Prepare new outgoing buffer */
     msgpack_sbuffer_init(&tmp_sbuf);
@@ -173,12 +173,15 @@ int flb_parser_regex_do(struct flb_parser *parser,
     pcb.time_now = time(NULL);
 
     {
-        const char *idms_log_event_name_key = "IdmsLogEventName";
-        const char *idms_log_event_priority_key = "IdmsLogEventPriority";
+        const char *idms_log_event_name_key = "LogName";
+        const char *idms_log_event_priority_key = "LogPriority";
+        const char *idms_log_event_tag_name_key = "LogTag";
+        char *idms_log_event_tag_name_value = parser->LogTag == NULL ? "NULL" : parser->LogTag;
         char priority_str[32] = {0};
         snprintf(priority_str, sizeof(priority_str) - 1, "%d", parser->priority);
         add_item(pcb.pck, idms_log_event_priority_key, strlen(idms_log_event_priority_key), (const char *)priority_str, strlen(priority_str), parser);
         add_item(pcb.pck, idms_log_event_name_key, strlen(idms_log_event_name_key), parser->name, strlen(parser->name), parser);
+        add_item(pcb.pck, idms_log_event_tag_name_key, strlen(idms_log_event_tag_name_key), idms_log_event_tag_name_value, strlen(idms_log_event_tag_name_value), parser);
     }
 
     /* Iterate results and compose new buffer */
